@@ -29,6 +29,7 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
+	"strconv"
 )
 
 // Message represents a chat message for our client
@@ -772,6 +773,43 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 			Filename: filename,
 			Path:     path,
 		})
+	})
+
+
+	// Handler for fetching last N messages from a chat
+	http.HandleFunc("/api/messages", func(w http.ResponseWriter, r *http.Request) {		
+		// Only allow GET requests
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)			
+			return
+		}
+
+		// Parse query parameters: chat_jid (required), limit (optional)
+		chatJID := r.URL.Query().Get("chat_jid")
+		fmt.Printf("chat_jid param: '%s'\n", chatJID)
+		if chatJID == "" {
+			http.Error(w, "chat_jid is required", http.StatusBadRequest)			
+			return
+		}
+		limit := 10 // default
+		if l := r.URL.Query().Get("limit"); l != "" {
+			if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 100 {
+				limit = n
+			} else {
+				fmt.Printf("Invalid limit param: '%s', err: %v\n", l, err)
+			}
+		}
+		fmt.Printf("Fetching messages for chat_jid='%s' with limit=%d\n", chatJID, limit)
+
+		messages, err := messageStore.GetMessages(chatJID, limit)
+		if err != nil {			
+			http.Error(w, "Failed to fetch messages: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		fmt.Printf("Fetched %d messages from DB\n", len(messages))
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(messages)
 	})
 
 	// Start the server
