@@ -784,32 +784,37 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 			return
 		}
 
-		// Parse query parameters: chat_jid (required), limit (optional)
-		chatJID := r.URL.Query().Get("chat_jid")
-		fmt.Printf("chat_jid param: '%s'\n", chatJID)
-		if chatJID == "" {
-			http.Error(w, "chat_jid is required", http.StatusBadRequest)			
-			return
-		}
-		limit := 10 // default
-		if l := r.URL.Query().Get("limit"); l != "" {
-			if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 100 {
-				limit = n
-			} else {
-				fmt.Printf("Invalid limit param: '%s', err: %v\n", l, err)
-			}
-		}
-		fmt.Printf("Fetching messages for chat_jid='%s' with limit=%d\n", chatJID, limit)
+	   // Parse query parameters: chat_jid (required), limit (optional)
+	   chatJID := r.URL.Query().Get("chat_jid")
+	   fmt.Printf("chat_jid param: '%s'\n", chatJID)
+	   if chatJID == "" {
+		   http.Error(w, "chat_jid is required", http.StatusBadRequest)
+		   return
+	   }
+	   // If chatJID does not contain '@', treat as phone number and append suffix
+	   if !strings.Contains(chatJID, "@") {
+		   chatJID = chatJID + "@s.whatsapp.net"
+		   fmt.Printf("chat_jid normalized to: '%s'\n", chatJID)
+	   }
+	   limit := 10 // default
+	   if l := r.URL.Query().Get("limit"); l != "" {
+		   if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 100 {
+			   limit = n
+		   } else {
+			   fmt.Printf("Invalid limit param: '%s', err: %v\n", l, err)
+		   }
+	   }
+	   fmt.Printf("Fetching messages for chat_jid='%s' with limit=%d\n", chatJID, limit)
 
-		messages, err := messageStore.GetMessages(chatJID, limit)
-		if err != nil {			
-			http.Error(w, "Failed to fetch messages: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-		fmt.Printf("Fetched %d messages from DB\n", len(messages))
+	   messages, err := messageStore.GetMessages(chatJID, limit)
+	   if err != nil {
+		   http.Error(w, "Failed to fetch messages: "+err.Error(), http.StatusInternalServerError)
+		   return
+	   }
+	   fmt.Printf("Fetched %d messages from DB\n", len(messages))
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(messages)
+	   w.Header().Set("Content-Type", "application/json")
+	   json.NewEncoder(w).Encode(messages)
 	})
 
 	// Start the server
