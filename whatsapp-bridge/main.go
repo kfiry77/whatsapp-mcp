@@ -711,7 +711,6 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 
 			recipient := r.FormValue("recipient")
 			message := r.FormValue("message")
-			filename := r.FormValue("filename")
 			
 			file, handler, err := r.FormFile("file")
 			if err != nil {
@@ -720,7 +719,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 					return
 				}
 				// No file provided, handle as regular message
-				success, responseMsg := sendWhatsAppMessage(client, recipient, message, "")
+				success, responseMsg := sendWhatsAppMessage(client, recipient, message, "", "")
 				w.Header().Set("Content-Type", "application/json")
 				if !success {
 					w.WriteHeader(http.StatusInternalServerError)
