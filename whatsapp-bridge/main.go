@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"math/rand"
 	"net/http"
@@ -706,7 +705,6 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 
 			recipient := r.FormValue("recipient")
 			message := r.FormValue("message")
-			filename := r.FormValue("filename")
 			
 			file, handler, err := r.FormFile("file")
 			if err != nil {
@@ -745,7 +743,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 			}
 
 			// Send message with media
-			success, responseMsg := sendWhatsAppMessage(client, recipient, message, filename)
+			success, responseMsg := sendWhatsAppMessage(client, recipient, message, tempFile.Name())
 			
 			w.Header().Set("Content-Type", "application/json")
 			if !success {
