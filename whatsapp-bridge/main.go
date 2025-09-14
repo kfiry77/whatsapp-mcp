@@ -212,7 +212,7 @@ type SendFileMessageRequest struct {
 }
 
 // Function to send a WhatsApp message
-func sendWhatsAppMessage(client *whatsmeow.Client, recipient string, message string, mediaPath string) (bool, string) {
+func sendWhatsAppMessage(client *whatsmeow.Client, recipient string, message string, mediaPath string, fileName string) (bool, string) {
 	if !client.IsConnected() {
 		return false, "Not connected to WhatsApp"
 	}
@@ -297,7 +297,12 @@ func sendWhatsAppMessage(client *whatsmeow.Client, recipient string, message str
 			return false, fmt.Sprintf("Error uploading media: %v", err)
 		}
 
-		fmt.Println("Media uploaded", resp)
+		// If no filename was provided, use the one from mediaPath
+		if fileName == "" {
+			fileName = filepath.Base(mediaPath)
+		}
+
+		fmt.Printf("Media uploaded %v with filename %s\n", resp, fileName)
 
 		// Create the appropriate message type based on media type
 		switch mediaType {
@@ -706,6 +711,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 
 			recipient := r.FormValue("recipient")
 			message := r.FormValue("message")
+			filename := r.FormValue("filename")
 			
 			file, handler, err := r.FormFile("file")
 			if err != nil {
@@ -744,7 +750,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 			}
 
 			// Send message with media
-			success, responseMsg := sendWhatsAppMessage(client, recipient, message, tempFile.Name())
+			success, responseMsg := sendWhatsAppMessage(client, recipient, message, tempFile.Name(), handler.Filename)
 			
 			w.Header().Set("Content-Type", "application/json")
 			if !success {
@@ -762,7 +768,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 				return
 			}
 
-			success, responseMsg := sendWhatsAppMessage(client, req.Recipient, req.Message, req.MediaPath)
+			success, responseMsg := sendWhatsAppMessage(client, req.Recipient, req.Message, req.MediaPath, "")
 			
 			w.Header().Set("Content-Type", "application/json")
 			if !success {
