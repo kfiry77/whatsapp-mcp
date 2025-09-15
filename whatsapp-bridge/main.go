@@ -205,10 +205,10 @@ type SendMessageRequest struct {
 }
 
 type SendFileMessageRequest struct {
-    Recipient string `json:"recipient"`
-    Message   string `json:"message"`
-    FileData  []byte `json:"file_data"`
-    FileName  string `json:"file_name"`
+	Recipient string `json:"recipient"`
+	Message   string `json:"message"`
+	FileData  []byte `json:"file_data"`
+	FileName  string `json:"file_name"`
 }
 
 // Function to send a WhatsApp message
@@ -361,6 +361,7 @@ func sendWhatsAppMessage(client *whatsmeow.Client, recipient string, message str
 		case whatsmeow.MediaDocument:
 			msg.DocumentMessage = &waProto.DocumentMessage{
 				Title:         proto.String(mediaPath[strings.LastIndex(mediaPath, "/")+1:]),
+				FileName:      proto.String(fileName),
 				Caption:       proto.String(message),
 				Mimetype:      proto.String(mimeType),
 				URL:           &resp.URL,
@@ -700,7 +701,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 
 		// Check content type
 		contentType := r.Header.Get("Content-Type")
-		
+
 		if strings.HasPrefix(contentType, "multipart/form-data") {
 			// Handle multipart form data (file upload)
 			err := r.ParseMultipartForm(10 << 20) // 10 MB max memory
@@ -711,7 +712,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 
 			recipient := r.FormValue("recipient")
 			message := r.FormValue("message")
-			
+
 			file, handler, err := r.FormFile("file")
 			if err != nil {
 				if err != http.ErrMissingFile {
@@ -750,7 +751,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 
 			// Send message with media
 			success, responseMsg := sendWhatsAppMessage(client, recipient, message, tempFile.Name(), handler.Filename)
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			if !success {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -768,7 +769,7 @@ func startRESTServer(client *whatsmeow.Client, messageStore *MessageStore, port 
 			}
 
 			success, responseMsg := sendWhatsAppMessage(client, req.Recipient, req.Message, req.MediaPath, "")
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			if !success {
 				w.WriteHeader(http.StatusInternalServerError)
