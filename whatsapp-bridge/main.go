@@ -250,6 +250,9 @@ func sendWhatsAppMessage(client *whatsmeow.Client, recipient string, message str
 
 		// Determine media type and mime type based on file extension
 		fileExt := strings.ToLower(mediaPath[strings.LastIndex(mediaPath, ".")+1:])
+		if fileName != "" {
+			fileExt = strings.ToLower(fileName[strings.LastIndex(fileName, ".")+1:])
+		}
 		var mediaType whatsmeow.MediaType
 		var mimeType string
 
@@ -284,6 +287,10 @@ func sendWhatsAppMessage(client *whatsmeow.Client, recipient string, message str
 		case "mov":
 			mediaType = whatsmeow.MediaVideo
 			mimeType = "video/quicktime"
+
+		case "pdf":
+			mediaType = whatsmeow.MediaDocument
+			mimeType = "application/pdf"
 
 		// Document types (for any other file type)
 		default:
